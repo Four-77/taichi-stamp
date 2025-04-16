@@ -1,1 +1,1 @@
-# taichi-stamp
+// Placeholder for README.md
