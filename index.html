@@ -1,1 +1,45 @@
 // Placeholder for index.html
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Taichi 拼图盖章系统</title>
+  <link rel="stylesheet" href="style.css" />
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+</head>
+<body>
+  <div class="container">
+    < img src="logo.webp" class="logo" alt="Taichi Logo" />
+    <h2>拼图盖章集满7块兑换奶茶！</h2>
+
+    <!-- 登录表单 -->
+    <div id="login-section">
+      <input type="email" id="email" placeholder="邮箱" />
+      <input type="password" id="password" placeholder="密码" />
+      <button onclick="login()">登录</button>
+      <button onclick="register()">注册</button>
+      <button onclick="googleLogin()">使用 Google 登录</button>
+    </div>
+
+    <!-- 主功能区 -->
+    <div id="main-section" style="display:none">
+      <p>欢迎：<span id="user-email"></span></p >
+      <div class="stamp-grid" id="stampGrid"></div>
+
+      <div class="actions">
+        <input type="password" id="staffPwd" placeholder="店员认证密码" />
+        <button onclick="addStamp()">盖章</button>
+        <button onclick="logout()">退出</button>
+      </div>
+
+      <div id="rewardMsg" class="reward"></div>
+    </div>
+  </div>
+
+  <script src="main.js"></script>
+</body>
+</html>
