@@ -83,7 +83,7 @@ function updateStampGrid() {
       piece.classList.add("stamped");
       piece.style.backgroundImage = `url("puzzle${i}.png")`;
     } else {
-      piece.style.backgroundImage = `url("placeholder.png")`;
+      piece.style.backgroundImage = `url("placeholder.jpg")`;
     }
     grid.appendChild(piece);
   }
