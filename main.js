@@ -108,3 +108,23 @@ function addStamp() {
     alert("你已集满拼图！");
   }
 }
+
+//兑换
+function redeemReward() {
+  const pwd = document.getElementById("staffPwd").value;
+  if (pwd !== staffPassword) {
+    alert("店员密码错误！");
+    return;
+  }
+
+  if (currentStamps < stampCount) {
+    alert("未集满拼图，无法兑换！");
+    return;
+  }
+
+  // 清空盖章记录
+  db.collection("users").doc(currentUser.uid).set({ stamps: 0 });
+  currentStamps = 0;
+  updateStampGrid();
+  alert("已兑换成功！拼图已重置。");
+}
