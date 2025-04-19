@@ -1,5 +1,22 @@
-// Placeholder for main.js
-// 替换为你自己的 Firebase 配置
+
+// Firebase 引入（记得替换为你的 config）
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+import {
+  getAuth,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  signOut,
+  onAuthStateChanged,
+} from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+import {
+  getFirestore,
+  doc,
+  setDoc,
+  getDoc,
+  updateDoc,
+} from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+
+// Firebase 配置（替换为你的）
 const firebaseConfig = {
   apiKey: "AIzaSyAuJ-Aum81PCEyoWvA9qjJGTPEdgtbBiVc",
   authDomain: "tachi-stamp.firebaseapp.com",
@@ -9,118 +26,99 @@ const firebaseConfig = {
   appId: "1:75815616456:web:01f2158c5ecbb01e5e4afd"
 };
 
-// 初始化 Firebase
-firebase.initializeApp(firebaseConfig);
-const auth = firebase.auth();
-const db = firebase.firestore();
-
-const stampCount = 7;
-const staffPassword = "123456"; // 店员密码，可自定义
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
 
 let currentUser = null;
 let currentStamps = 0;
 
-// 注册账号
-function register() {
+// 登录 & 注册
+window.login = async () => {
   const email = document.getElementById("email").value;
   const pwd = document.getElementById("password").value;
-  auth.createUserWithEmailAndPassword(email, pwd)
-    .then(() => alert("注册成功！请登录。"))
-    .catch(err => alert(err.message));
-}
+  const userCredential = await signInWithEmailAndPassword(auth, email, pwd);
+  currentUser = userCredential.user;
+  initUserData();
+};
 
-// 登录账号
-function login() {
+window.signup = async () => {
   const email = document.getElementById("email").value;
   const pwd = document.getElementById("password").value;
-  auth.signInWithEmailAndPassword(email, pwd)
-    .then(() => console.log("登录成功"))
-    .catch(err => alert(err.message));
+  const userCredential = await createUserWithEmailAndPassword(auth, email, pwd);
+  currentUser = userCredential.user;
+  await setDoc(doc(db, "users", currentUser.uid), { stamps: 0 });
+  initUserData();
+};
+
+window.logout = async () => {
+  await signOut(auth);
+  location.reload();
+};
+
+// 初始化用户数据
+async function initUserData() {
+  document.getElementById("login-section").style.display = "none";
+  document.getElementById("main-section").style.display = "block";
+  document.getElementById("userEmail").innerText = currentUser.email;
+
+  const userRef = doc(db, "users", currentUser.uid);
+  const docSnap = await getDoc(userRef);
+
+  if (docSnap.exists()) {
+    currentStamps = docSnap.data().stamps || 0;
+  } else {
+    currentStamps = 0;
+    await setDoc(userRef, { stamps: 0 });
+  }
+
+  document.getElementById("stampCount").innerText = currentStamps;
+  updatePuzzleDisplay(currentStamps);
 }
 
-// Google 登录
-function googleLogin() {
-  const provider = new firebase.auth.GoogleAuthProvider();
-  auth.signInWithPopup(provider)
-    .then(() => console.log("Google 登录成功"))
-    .catch(err => alert(err.message));
+// 拼图显示逻辑
+function updatePuzzleDisplay(stampCount) {
+  const container = document.getElementById("puzzleContainer");
+  container.innerHTML = "";
+
+  for (let i = 1; i <= 7; i++) {
+    const img = document.createElement("img");
+    img.src = stampCount >= i ? `images/puzzle-${i}.jpg` : `images/puzzle-placeholder.jpg`;
+    img.classList.add("puzzle-piece");
+    container.appendChild(img);
+  }
+
+  if (stampCount >= 7) {
+    alert("恭喜你集齐拼图！请向店员兑换奖励！");
+  }
 }
 
-// 登出
-function logout() {
-  auth.signOut();
-  document.getElementById("main-section").style.display = "none";
-  document.getElementById("login-section").style.display = "block";
-}
+// 盖章
+window.addStamp = async () => {
+  const pwd = document.getElementById("staffPwd").value;
+  if (pwd !== "1234") {
+    alert("店员密码错误");
+    return;
+  }
 
-// 实时监听登录状态
-auth.onAuthStateChanged(user => {
+  if (currentStamps >= 7) {
+    alert("已集满7章！");
+    return;
+  }
+
+  currentStamps += 1;
+  await updateDoc(doc(db, "users", currentUser.uid), { stamps: currentStamps });
+  document.getElementById("stampCount").innerText = currentStamps;
+  updatePuzzleDisplay(currentStamps);
+};
+
+// 监听登录状态
+onAuthStateChanged(auth, (user) => {
   if (user) {
     currentUser = user;
-    document.getElementById("user-email").innerText = user.email;
-    document.getElementById("login-section").style.display = "none";
-    document.getElementById("main-section").style.display = "block";
-    loadStamps();
+    initUserData();
   }
 });
-
-// 加载当前用户的拼图状态
-function loadStamps() {
-  db.collection("users").doc(currentUser.uid).get().then(doc => {
-    currentStamps = doc.exists ? doc.data().stamps || 0 : 0;
-    updateStampGrid();
-  });
-}
-
-// 更新拼图 UI
-function updateStampGrid() {
-  const grid = document.getElementById("stampGrid");
-  grid.innerHTML = "";
-  for (let i = 1; i <= stampCount; i++) {
-    const piece = document.createElement("div");
-    piece.classList.add("stamp");
-    if (i <= currentStamps) {
-      piece.classList.add("stamped");
-      piece.style.backgroundImage = `url("puzzle${i}.png")`;
-    } else {
-      piece.style.backgroundImage = `url("placeholder.jpg")`;
-    }
-    grid.appendChild(piece);
-  }
-
-  const msg = document.getElementById("rewardMsg");
-  msg.innerText = currentStamps >= stampCount ? "恭喜你集满拼图！请兑换奖品" : "";
-}
-
-// 盖章逻辑（需要店员认证）
-function addStamp() {
-  const pwd = document.getElementById("staffPwd").value;
-  if (pwd !== staffPassword) {
-    alert("店员密码错误！");
-    return;
-  }
-
-  if (currentStamps < stampCount) {
-    currentStamps++;
-    db.collection("users").doc(currentUser.uid).set({ stamps: currentStamps });
-    updateStampGrid();
-  } else {
-    alert("你已集满拼图！");
-  }
-}
-
-//兑换
-function redeemReward() {
-  const pwd = document.getElementById("staffPwd").value;
-  if (pwd !== staffPassword) {
-    alert("店员密码错误！");
-    return;
-  }
-
-  if (currentStamps < stampCount) {
-    alert("未集满拼图，无法兑换！");
-    return;
-  }
 
   // 清空盖章记录
   db.collection("users").doc(currentUser.uid).set({ stamps: 0 });
